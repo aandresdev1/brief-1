@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brief de proyecto — Crearperu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0805;
+    --surface: rgba(20,15,8,0.55);
+    --surface-alt: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --text: #ECECF1;
+    --text-muted: rgba(236,236,241,0.62);
+    --accent: #F2A33C;
+    --accent-text: #1A1206;
+    --accent-soft: rgba(242,163,60,0.14);
+    --accent-2: #F2A33C;
+    --accent-2-soft: rgba(242,163,60,0.14);
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px 80px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+  }
+  .brand-name {
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+
+  .rail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .rail-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .rail-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.25s ease;
+  }
+  .rail-step.active .rail-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+  }
+  .rail-step.active { color: var(--text); }
+  .rail-line {
+    flex: 1;
+    height: 1.5px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .rail-line-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .rail-line.filled .rail-line-fill { transform: scaleX(1); }
+
+  h1 {
+    font-family: 'Sora', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14.5px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+
+  /* --- Step 1: type selector --- */
+  .type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .type-card {
+    position: relative;
+    text-align: left;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
+    color: var(--text);
+    overflow: hidden;
+  }
+  .type-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent-color, var(--accent));
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .type-card:hover:not(.disabled) {
+    border-color: var(--accent-color, var(--accent));
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+  .type-card:hover:not(.disabled)::before { opacity: 1; }
+  .type-card.disabled {
+    cursor: default;
+    color: var(--text-muted);
+  }
+  .type-card.disabled .type-icon { opacity: 0.35; }
+  .type-icon {
+    width: 30px; height: 30px;
+    margin-bottom: 10px;
+    color: var(--accent-color, var(--accent));
+  }
+  .type-icon svg { width: 100%; height: 100%; }
+  .type-label {
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 3px;
+  }
+  .type-hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .badge-soon {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    padding: 3px 7px;
+    border-radius: 20px;
+  }
+
+  /* --- Step 2: form --- */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 16px;
+  }
+  .back-link:hover { color: var(--text); }
+
+  .selected-type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+  }
+
+  .field {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 18px 20px;
+    margin-bottom: 12px;
+  }
+  .field-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .field-hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: -8px;
+    margin-bottom: 12px;
+  }
+
+  .pill-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 7px 13px 7px 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s ease;
+  }
+  .pill:hover { border-color: var(--accent); }
+  .pill.checked {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .pill-check {
+    width: 15px; height: 15px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s ease;
+  }
+  .pill.checked .pill-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .pill-check svg { width: 9px; height: 9px; opacity: 0; transition: opacity 0.1s; }
+  .pill.checked .pill-check svg { opacity: 1; }
+  .pill.custom-added .pill-remove {
+    margin-left: 2px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .add-other-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .add-other-row input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13.5px;
+    background: var(--surface-alt);
+  }
+  .add-other-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .add-other-row button {
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-other-row button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toggle-group {
+    display: inline-flex;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .toggle-opt {
+    padding: 8px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: none;
+    font-family: inherit;
+    border-right: 1.5px solid var(--border);
+  }
+  .toggle-opt:last-child { border-right: none; }
+  .toggle-opt.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  select.select-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    background: var(--surface-alt) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%23ECECF1" opacity="0.6"><path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="%23ECECF1" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>') no-repeat right 12px center;
+    appearance: none;
+    color: var(--text);
+    cursor: pointer;
+  }
+  select.select-input:focus { outline: none; border-color: var(--accent); background-color: var(--surface); }
+
+  textarea.text-input {
+    width: 100%;
+    min-height: 90px;
+    padding: 11px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13.5px;
+    background: var(--surface-alt);
+    resize: vertical;
+    color: var(--text);
+  }
+  textarea.text-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  textarea.text-input::placeholder { color: #A6A59C; }
+
+  .submit-error {
+    background: rgba(239,68,68,0.12);
+    border: 1.5px solid rgba(239,68,68,0.35);
+    color: #FCA5A5;
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .submit-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(26,18,6,0.3);
+    border-top-color: #1A1206;
+    border-radius: 50%;
+    vertical-align: -2px;
+    margin-right: 4px;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 8px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 11px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .submit-btn:hover { background: #FFB35C; }
+  .submit-btn:active { transform: scale(0.99); }
+
+  /* --- confirmation --- */
+  .confirm {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .confirm-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--accent-2-soft);
+    color: var(--accent-2);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+  }
+  .confirm h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    margin: 0 0 8px;
+  }
+  .confirm p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+
+  .step { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .type-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="brand">
+    <div class="brand-name">Brief del proyecto inicial</div>
+    <img class="brand-mark" src="data:image/jpeg;base64,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" alt="Foto de perfil">
+  </div>
+
+  <div class="rail">
+    <div class="rail-step active" id="railStep1">
+      <div class="rail-dot">1</div>
+      <span>Tipo de proyecto</span>
+    </div>
+    <div class="rail-line" id="railLine"><div class="rail-line-fill"></div></div>
+    <div class="rail-step" id="railStep2">
+      <div class="rail-dot">2</div>
+      <span>Detalles</span>
+    </div>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script>
+// ---------- Data model ----------
+const ICONS = {
+  landing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18" stroke-linecap="round"/><rect x="6" y="12" width="7" height="5" rx="1"/></svg>',
+  website: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16" stroke-linecap="round"/></svg>',
+  ecommerce: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16l-1.5 10.5a2 2 0 0 1-2 1.5H7.5a2 2 0 0 1-2-1.5L4 6Z" stroke-linejoin="round"/><path d="M8 6V5a4 4 0 0 1 8 0v1" stroke-linecap="round"/></svg>',
+  app: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18h4" stroke-linecap="round"/></svg>',
+  webapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg>'
+};
+
+const PROJECT_TYPES = {
+  landing: {
+    label: "Landing Page",
+    hint: "Una sola página enfocada en conversión",
+    color: "#F2A33C",
+    available: true,
+    pageQuestion: "¿Qué secciones necesitas?",
+    pageOptions: ["Hero / Portada","Sobre nosotros","Servicios","Testimonios","Preguntas frecuentes","Formulario de contacto","Ubicación / Mapa"]
+  },
+  website: {
+    label: "Sitio Web",
+    hint: "Varias páginas, presencia institucional",
+    color: "#F2A33C",
+    available: true,
+    pageQuestion: "¿Qué páginas necesitas?",
+    pageOptions: ["Inicio","Nosotros","Servicios","Equipo","Blog / Noticias","Preguntas frecuentes","Contacto"]
+  },
+  ecommerce: { label: "E-commerce", hint: "Venta de productos en línea", color: "#F2A33C", available: false },
+  app: { label: "App Móvil", hint: "iOS, Android o ambos", color: "#F2A33C", available: false },
+  webapp: { label: "Web App", hint: "Sistema o herramienta a medida", color: "#F2A33C", available: false }
+};
+
+// Q2–Q9: shared across all available types today
+// Orden pensado para seguir el flujo natural de la conversación con el cliente:
+// 1) qué trae el cliente (diseño) → 2) preferencia técnica → 3) infraestructura (dominio/hosting)
+// → 4) requisitos funcionales → 5) legal/cumplimiento → 6) soporte post-entrega → 7) notas abiertas al final
+const COMMON_QUESTIONS = [
+  { id: "disenos", type: "toggle", label: "¿Tienes el diseño de la(s) página(s)?", options: ["Sí","No"] },
+  { id: "tecnologia", type: "select", label: "¿Has pensado en alguna tecnología?",
+    options: ["Webflow","WordPress","Desarrollo a medida","No lo he pensado"] },
+  { id: "dominio", type: "toggle", label: "¿Cuentas con dominio?", options: ["Sí","No"] },
+  { id: "hosting", type: "toggle", label: "¿Cuentas con hosting?", options: ["Sí","No"] },
+  { id: "administrable", type: "toggle", label: "¿Será administrable?", options: ["Sí","No"] },
+  { id: "idiomas", type: "toggle", label: "¿Necesitas que esté en más de un idioma?", options: ["Sí","No"] },
+  { id: "libro_reclamaciones", type: "toggle", label: "¿Necesitas Libro de Reclamaciones?", options: ["Sí","No"] },
+  { id: "terminos_condiciones", type: "toggle", label: "¿Necesitas Términos y Condiciones?", options: ["Sí","No"] },
+  { id: "despliegue", type: "toggle", label: "¿Necesitas ayuda con el despliegue del proyecto al finalizar?", options: ["Sí","No"] },
+  { id: "especificaciones", type: "textarea", label: "Detalla más especificaciones que consideras importantes",
+    placeholder: "Cuéntame cualquier detalle adicional que deba saber…" }
+];
+
+// ---------- State ----------
+// El link real luce así: tu-dominio.com/brief?id=<page_id_de_notion>
+// Andrés crea la fila en "Proyectos" (Nombre + Cliente) antes de enviar el link;
+// el tipo de proyecto SÍ lo elige el cliente aquí en el formulario (paso 1).
+const N8N_WEBHOOK_URL = "https://primary-production-b62f1.up.railway.app/webhook/brief-submit";
+
+const urlParams = new URLSearchParams(window.location.search);
+let state = { type: null, pages: [], answers: {}, pageId: urlParams.get('id') || null, submitting: false, submitError: null };
+
+const content = document.getElementById('content');
+
+function render() {
+  if (!state.pageId) return renderNoId();
+  if (!state.type) return renderStep1();
+  if (!state.submitted) return renderStep2();
+  return renderConfirm();
+}
+
+function renderNoId() {
+  setRail(0);
+  content.innerHTML = `
+    <div class="step confirm">
+      <div class="confirm-icon" style="background: rgba(239,68,68,0.12); color: #DC2626;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>Este link no es válido</h2>
+      <p>Por favor solicita un nuevo link a quien te lo compartió.</p>
+    </div>
+  `;
+}
+
+function setRail(step) {
+  document.getElementById('railStep1').classList.toggle('active', step >= 1);
+  document.getElementById('railStep2').classList.toggle('active', step >= 2);
+  document.getElementById('railLine').classList.toggle('filled', step >= 2);
+}
+
+// ---------- Step 1 ----------
+function renderStep1() {
+  setRail(1);
+  const cards = Object.entries(PROJECT_TYPES).map(([key, t]) => `
+    <button class="type-card ${t.available ? '' : 'disabled'}" style="--accent-color:${t.color}" data-type="${key}" ${t.available ? '' : 'disabled'}>
+      ${!t.available ? '<span class="badge-soon">Próximamente</span>' : ''}
+      <div class="type-icon">${ICONS[key]}</div>
+      <div class="type-label">${t.label}</div>
+      <div class="type-hint">${t.hint}</div>
+    </button>
+  `).join('');
+
+  content.innerHTML = `
+    <div class="step">
+      <h1>Cuéntanos sobre tu proyecto</h1>
+      <p class="subtitle">Elige el tipo de proyecto que necesitas. Según tu selección, te haremos las preguntas correctas.</p>
+      <div class="type-grid">${cards}</div>
+    </div>
+  `;
+
+  content.querySelectorAll('.type-card:not(.disabled)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.type = btn.dataset.type;
+      state.pages = [];
+      state.answers = {};
+      render();
+    });
+  });
+}
+
+// ---------- Step 2 ----------
+function renderStep2() {
+  setRail(2);
+  const t = PROJECT_TYPES[state.type];
+
+  content.innerHTML = `
+    <div class="step">
+      <button class="back-link" id="backBtn">← Cambiar tipo de proyecto</button><br>
+      <div class="selected-type-pill">${ICONS[state.type].includes('<svg') ? '' : ''}${t.label}</div>
+      <h1>Detalles de tu ${t.label.toLowerCase()}</h1>
+      <p class="subtitle">Marca las opciones que apliquen. Si algo no está en la lista, puedes agregarlo.</p>
+
+      <div class="field">
+        <div class="field-label">${t.pageQuestion}</div>
+        <div class="pill-grid" id="pageOptionsGrid"></div>
+        <div class="add-other-row">
+          <input type="text" id="customPageInput" placeholder="Agregar otra que no esté en la lista…">
+          <button id="addPageBtn" type="button">+ Agregar</button>
+        </div>
+      </div>
+
+      <div id="commonQuestions"></div>
+
+      ${state.submitError ? `<div class="submit-error">${state.submitError}</div>` : ''}
+      <button class="submit-btn" id="submitBtn" ${state.submitting ? 'disabled' : ''}>${state.submitting ? '<span class="spinner"></span> Enviando…' : 'Enviar brief'}</button>
+    </div>
+  `;
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    state.type = null;
+    render();
+  });
+
+  renderPagePills(t);
+
+  document.getElementById('addPageBtn').addEventListener('click', addCustomPage);
+  document.getElementById('customPageInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addCustomPage(); }
+  });
+
+  renderCommonQuestions();
+
+  document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+}
+
+function renderPagePills(t) {
+  const grid = document.getElementById('pageOptionsGrid');
+  const allOptions = [...t.pageOptions, ...state.pages.filter(p => !t.pageOptions.includes(p))];
+  grid.innerHTML = allOptions.map(opt => {
+    const checked = state.pages.includes(opt);
+    const isCustom = !t.pageOptions.includes(opt);
+    return `
+      <div class="pill ${checked ? 'checked' : ''} ${isCustom ? 'custom-added' : ''}" data-opt="${opt.replace(/"/g,'&quot;')}">
+        <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg></span>
+        <span>${opt}</span>
+        ${isCustom ? '<span class="pill-remove">✕</span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      const opt = pill.dataset.opt;
+      const removeClicked = e.target.classList.contains('pill-remove');
+      if (removeClicked) {
+        state.pages = state.pages.filter(p => p !== opt);
+      } else if (state.pages.includes(opt)) {
+        state.pages = state.pages.filter(p => p !== opt);
+      } else {
+        state.pages.push(opt);
+      }
+      renderPagePills(t);
+    });
+  });
+}
+
+function addCustomPage() {
+  const input = document.getElementById('customPageInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!state.pages.includes(val)) state.pages.push(val);
+  input.value = "";
+  renderPagePills(PROJECT_TYPES[state.type]);
+}
+
+function renderCommonQuestions() {
+  const container = document.getElementById('commonQuestions');
+  container.innerHTML = COMMON_QUESTIONS.map(q => {
+    if (q.type === 'toggle') {
+      return `
+        <div class="field">
+          <div class="field-label">${q.label}</div>
+          <div class="toggle-group" data-qid="${q.id}">
+            ${q.options.map(o => `<button type="button" class="toggle-opt ${state.answers[q.id] === o ? 'active' : ''}" data-val="${o}">${o}</button>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+    if (q.type === 'select') {
+      return `
+        <div class="field">
+          <div class="field-label">${q.label}</div>
+          <select class="select-input" data-qid="${q.id}">
+            <option value="" disabled ${!state.answers[q.id] ? 'selected' : ''}>Selecciona una opción</option>
+            ${q.options.map(o => `<option value="${o}" ${state.answers[q.id] === o ? 'selected' : ''}>${o}</option>`).join('')}
+          </select>
+        </div>
+      `;
+    }
+    if (q.type === 'textarea') {
+      return `
+        <div class="field">
+          <div class="field-label">${q.label}</div>
+          <textarea class="text-input" data-qid="${q.id}" placeholder="${q.placeholder || ''}">${state.answers[q.id] || ''}</textarea>
+        </div>
+      `;
+    }
+    return '';
+  }).join('');
+
+  container.querySelectorAll('.toggle-group').forEach(group => {
+    group.querySelectorAll('.toggle-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.answers[group.dataset.qid] = btn.dataset.val;
+        renderCommonQuestions();
+      });
+    });
+  });
+  container.querySelectorAll('select.select-input').forEach(sel => {
+    sel.addEventListener('change', () => { state.answers[sel.dataset.qid] = sel.value; });
+  });
+  container.querySelectorAll('textarea.text-input').forEach(ta => {
+    ta.addEventListener('input', () => { state.answers[ta.dataset.qid] = ta.value; });
+  });
+}
+
+// ---------- Submit / confirm ----------
+function buildPayload() {
+  const t = PROJECT_TYPES[state.type];
+  return {
+    page_id: state.pageId,
+    tipo_proyecto: t.label,
+    paginas_secciones_pregunta: t.pageQuestion,
+    paginas_secciones: state.pages,
+    respuestas: COMMON_QUESTIONS.reduce((acc, q) => {
+      acc[q.label] = state.answers[q.id] || null;
+      return acc;
+    }, {})
+  };
+}
+
+async function handleSubmit() {
+  state.submitting = true;
+  state.submitError = null;
+  renderStep2();
+
+  const payload = buildPayload();
+
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('El servidor respondió con un error (' + res.status + ')');
+    state.submitting = false;
+    state.submitted = true;
+    render();
+  } catch (err) {
+    state.submitting = false;
+    state.submitError = 'No se pudo enviar el brief. Revisa tu conexión e intenta de nuevo. (' + err.message + ')';
+    renderStep2();
+  }
+}
+
+function renderConfirm() {
+  setRail(2);
+
+  content.innerHTML = `
+    <div class="step confirm">
+      <div class="confirm-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>¡Brief enviado con éxito!</h2>
+      <p>Gracias por completar el brief. Nos pondremos en contacto contigo muy pronto para conversar sobre tu proyecto.</p>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
