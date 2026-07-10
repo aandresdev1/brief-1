@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+export const prerender = true;
+---
+
+<Layout step={0}>
+  <div class="step confirm">
+    <div class="confirm-icon" style="background: rgba(239,68,68,0.12); color: #DC2626;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+    <h2>Este link no es válido</h2>
+    <p>Por favor solicita un nuevo link a quien te lo compartió.</p>
+  </div>
+</Layout>

@@ -1,0 +1,53 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  step?: 0 | 1 | 2;
+  brandName?: string;
+  appClass?: string;
+}
+
+const {
+  title = 'Brief de proyecto — Andres Godinez',
+  step = 1,
+  brandName = 'Brief del proyecto inicial',
+  appClass = '',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class={`app ${appClass}`}>
+    <div class="brand">
+      <div class="brand-name">{brandName}</div>
+      <img class="brand-mark" src="/andres.jpg" alt="Foto de perfil" />
+    </div>
+
+    {step > 0 && (
+      <div class="rail">
+        <div class={`rail-step ${step >= 1 ? 'active' : ''}`}>
+          <div class="rail-dot">1</div>
+          <span>Tipo de proyecto</span>
+        </div>
+        <div class={`rail-line ${step >= 2 ? 'filled' : ''}`}><div class="rail-line-fill"></div></div>
+        <div class={`rail-step ${step >= 2 ? 'active' : ''}`}>
+          <div class="rail-dot">2</div>
+          <span>Detalles</span>
+        </div>
+      </div>
+    )}
+
+    <slot />
+  </div>
+</body>
+</html>

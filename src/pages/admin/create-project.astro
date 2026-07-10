@@ -1,0 +1,172 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = true;
+
+const LIST_CLIENTS_URL = 'https://primary-production-b62f1.up.railway.app/webhook/listar-clientes';
+const CREATE_PROJECT_URL = 'https://primary-production-b62f1.up.railway.app/webhook/crear-proyecto';
+// Base del dominio donde vive el formulario. Ajustar si cambia el dominio.
+const BRIEF_FORM_BASE = 'https://brief-1-iota.vercel.app';
+---
+
+<Layout
+  title="Crear proyecto — Crearperu"
+  step={0}
+  brandName="Crear nuevo proyecto"
+  appClass="narrow"
+>
+  <div id="content"></div>
+</Layout>
+
+<script define:vars={{ LIST_CLIENTS_URL, CREATE_PROJECT_URL, BRIEF_FORM_BASE }}>
+  const state = {
+    clients: [],
+    clientsLoading: true,
+    clientsError: null,
+    submitting: false,
+    submitError: null,
+    result: null, // { projectId, projectName, link }
+  };
+
+  const content = document.getElementById('content');
+
+  function render() {
+    if (state.result) return renderResult();
+    return renderForm();
+  }
+
+  function renderForm() {
+    content.innerHTML = `
+      <div class="step">
+        <h1>Nuevo proyecto</h1>
+        <p class="subtitle">Selecciona el cliente y ponle nombre al proyecto. Se crea directo en Notion y te doy el link para el cliente.</p>
+
+        ${state.submitError ? `<div class="error-box">${state.submitError}</div>` : ''}
+
+        <div class="field">
+          <div class="field-label">Cliente</div>
+          <select class="select-input" id="clienteSelect" ${state.clientsLoading ? 'disabled' : ''}>
+            ${state.clientsLoading
+              ? '<option>Cargando clientes…</option>'
+              : state.clientsError
+                ? '<option>No se pudo cargar la lista</option>'
+                : ['<option value="" disabled selected>Selecciona un cliente</option>', ...state.clients.map(c => `<option value="${c.id}">${c.nombre}</option>`)].join('')
+            }
+          </select>
+          ${state.clientsError ? `<div class="error-box" style="margin-top:10px;margin-bottom:0;">${state.clientsError}</div>` : ''}
+        </div>
+
+        <div class="field">
+          <div class="field-label">Nombre del proyecto</div>
+          <input class="text-input" id="nombreInput" type="text" placeholder="Ej: Landing Fundición Ríos">
+        </div>
+
+        <button class="submit-btn" id="submitBtn" ${state.submitting ? 'disabled' : ''}>${state.submitting ? '<span class="spinner"></span> Creando…' : 'Crear proyecto y generar link'}</button>
+      </div>
+    `;
+
+    document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+  }
+
+  function renderResult() {
+    content.innerHTML = `
+      <div class="step">
+        <div class="result-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1>Proyecto creado</h1>
+        <p class="result-project-name">"${state.result.projectName}" ya está en Notion. Copia el link y mándaselo al cliente:</p>
+
+        <div class="link-box">
+          <input type="text" id="linkOutput" value="${state.result.link}" readonly>
+          <button class="copy-btn" id="copyBtn">Copiar</button>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">+ Crear otro proyecto</button>
+      </div>
+    `;
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const input = document.getElementById('linkOutput');
+      input.select();
+      try {
+        await navigator.clipboard.writeText(state.result.link);
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1800);
+      } catch (e) {
+        document.execCommand('copy');
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state.result = null;
+      state.submitError = null;
+      render();
+      loadClients();
+    });
+  }
+
+  async function loadClients() {
+    state.clientsLoading = true;
+    state.clientsError = null;
+    render();
+    try {
+      const res = await fetch(LIST_CLIENTS_URL);
+      if (!res.ok) throw new Error('Error ' + res.status);
+      const data = await res.json();
+      state.clients = data.clientes || [];
+    } catch (err) {
+      state.clientsError = 'No se pudo cargar la lista de clientes. (' + err.message + ')';
+    }
+    state.clientsLoading = false;
+    render();
+  }
+
+  async function handleSubmit() {
+    const clienteId = document.getElementById('clienteSelect').value;
+    const nombre = document.getElementById('nombreInput').value.trim();
+
+    if (!clienteId) {
+      state.submitError = 'Selecciona un cliente.';
+      render();
+      return;
+    }
+    if (!nombre) {
+      state.submitError = 'Ponle un nombre al proyecto.';
+      render();
+      return;
+    }
+
+    state.submitting = true;
+    state.submitError = null;
+    render();
+
+    try {
+      const res = await fetch(CREATE_PROJECT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre_proyecto: nombre, cliente_id: clienteId }),
+      });
+      if (!res.ok) throw new Error('El servidor respondió con error (' + res.status + ')');
+      const data = await res.json();
+      if (!data.project_id) throw new Error('No se recibió el ID del proyecto.');
+
+      state.submitting = false;
+      state.result = {
+        projectId: data.project_id,
+        projectName: nombre,
+        link: BRIEF_FORM_BASE + '/brief/' + data.project_id,
+      };
+      render();
+    } catch (err) {
+      state.submitting = false;
+      state.submitError = 'No se pudo crear el proyecto. Revisa tu conexión e intenta de nuevo. (' + err.message + ')';
+      render();
+    }
+  }
+
+  render();
+  loadClients();
+</script>

@@ -1,0 +1,165 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { PROJECT_TYPES, COMMON_QUESTIONS, N8N_WEBHOOK_URL } from '../../../lib/projects.js';
+
+const { id, type } = Astro.params;
+
+const projectType = type && PROJECT_TYPES[type];
+if (!projectType || !projectType.available) {
+  return Astro.redirect(`/brief/${id}`);
+}
+
+const t = projectType;
+---
+
+<Layout step={2}>
+  <div class="step">
+    <a class="back-link" href={`/brief/${id}`}>← Cambiar tipo de proyecto</a><br />
+    <div class="selected-type-pill">{t.label}</div>
+    <h1>Detalles de tu {t.label.toLowerCase()}</h1>
+    <p class="subtitle">Marca las opciones que apliquen. Si algo no está en la lista, puedes agregarlo.</p>
+
+    <div class="field">
+      <div class="field-label">{t.pageQuestion}</div>
+      <div class="pill-grid" id="pageOptionsGrid"></div>
+      <div class="add-other-row">
+        <input type="text" id="customPageInput" placeholder="Agregar otra que no esté en la lista…" />
+        <button id="addPageBtn" type="button">+ Agregar</button>
+      </div>
+    </div>
+
+    <div id="commonQuestions">
+      {COMMON_QUESTIONS.map(q => (
+        <div class="field" data-qid={q.id}>
+          <div class="field-label">{q.label}</div>
+          {q.type === 'toggle' && (
+            <div class="toggle-group" data-qid={q.id}>
+              {q.options!.map(o => (
+                <button type="button" class="toggle-opt" data-val={o}>{o}</button>
+              ))}
+            </div>
+          )}
+          {q.type === 'select' && (
+            <select class="select-input" data-qid={q.id}>
+              <option value="" disabled selected>Selecciona una opción</option>
+              {q.options!.map(o => <option value={o}>{o}</option>)}
+            </select>
+          )}
+          {q.type === 'textarea' && (
+            <textarea class="text-input" data-qid={q.id} placeholder={q.placeholder}></textarea>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <div class="submit-error" id="submitError" style="display:none"></div>
+    <button class="submit-btn" id="submitBtn">Enviar brief</button>
+  </div>
+</Layout>
+
+<script define:vars={{ pageId: id, projectType: t, COMMON_QUESTIONS, N8N_WEBHOOK_URL }}>
+  const state = { pages: [] };
+  const grid = document.getElementById('pageOptionsGrid');
+
+  function renderPills() {
+    const all = [...projectType.pageOptions, ...state.pages.filter(p => !projectType.pageOptions.includes(p))];
+    grid.innerHTML = all.map(opt => {
+      const checked = state.pages.includes(opt);
+      const isCustom = !projectType.pageOptions.includes(opt);
+      const safe = opt.replace(/"/g, '&quot;');
+      return `
+        <div class="pill ${checked ? 'checked' : ''} ${isCustom ? 'custom-added' : ''}" data-opt="${safe}">
+          <span class="pill-check"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2"><path d="M2 6l3 3 5-6"/></svg></span>
+          <span>${opt}</span>
+          ${isCustom ? '<span class="pill-remove">✕</span>' : ''}
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        const opt = pill.dataset.opt;
+        const removeClicked = e.target.classList.contains('pill-remove');
+        if (removeClicked) {
+          state.pages = state.pages.filter(p => p !== opt);
+        } else if (state.pages.includes(opt)) {
+          state.pages = state.pages.filter(p => p !== opt);
+        } else {
+          state.pages.push(opt);
+        }
+        renderPills();
+      });
+    });
+  }
+
+  function addCustomPage() {
+    const input = document.getElementById('customPageInput');
+    const val = input.value.trim();
+    if (!val) return;
+    if (!state.pages.includes(val)) state.pages.push(val);
+    input.value = '';
+    renderPills();
+  }
+
+  renderPills();
+  document.getElementById('addPageBtn').addEventListener('click', addCustomPage);
+  document.getElementById('customPageInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addCustomPage(); }
+  });
+
+  document.querySelectorAll('.toggle-group').forEach(group => {
+    group.querySelectorAll('.toggle-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+
+  document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+
+  async function handleSubmit() {
+    const submitBtn = document.getElementById('submitBtn');
+    const errorEl = document.getElementById('submitError');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Enviando…';
+    errorEl.style.display = 'none';
+
+    const answers = {};
+    COMMON_QUESTIONS.forEach(q => {
+      if (q.type === 'toggle') {
+        const active = document.querySelector(`.toggle-group[data-qid="${q.id}"] .toggle-opt.active`);
+        answers[q.label] = active ? active.dataset.val : null;
+      } else if (q.type === 'select') {
+        const sel = document.querySelector(`select[data-qid="${q.id}"]`);
+        answers[q.label] = sel.value || null;
+      } else if (q.type === 'textarea') {
+        const ta = document.querySelector(`textarea[data-qid="${q.id}"]`);
+        answers[q.label] = ta.value || null;
+      }
+    });
+
+    const payload = {
+      page_id: pageId,
+      tipo_proyecto: projectType.label,
+      paginas_secciones_pregunta: projectType.pageQuestion,
+      paginas_secciones: state.pages,
+      respuestas: answers,
+    };
+
+    try {
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('El servidor respondió con un error (' + res.status + ')');
+      window.location.href = '/thanks';
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar brief';
+      errorEl.textContent = 'No se pudo enviar el brief. Revisa tu conexión e intenta de nuevo. (' + err.message + ')';
+      errorEl.style.display = 'block';
+    }
+  }
+</script>
