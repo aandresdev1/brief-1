@@ -25,11 +25,36 @@ body {
   display: flex;
   justify-content: center;
   padding: 48px 20px 80px;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* --- Fondos ambientales --- */
+.bg-grid {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: drift 14s linear infinite;
+}
+.bg-glow {
+  position: fixed; top: -180px; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 600px; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(242,163,60,0.18), transparent 65%);
+  filter: blur(20px);
+}
+
+@keyframes drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
 }
 
 .app {
   width: 100%;
   max-width: 640px;
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
