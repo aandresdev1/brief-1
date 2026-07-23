@@ -6,6 +6,8 @@ export const ICONS = {
   webapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg>'
 };
 
+const WEBSITE_PAGES = ["Inicio","Nosotros","Servicios","Equipo","Blog / Noticias","Preguntas frecuentes","Contacto"];
+
 export const PROJECT_TYPES = {
   landing: {
     label: "Landing Page",
@@ -21,7 +23,7 @@ export const PROJECT_TYPES = {
     color: "#F2A33C",
     available: true,
     pageQuestion: "¿Qué páginas necesitas?",
-    pageOptions: ["Inicio","Nosotros","Servicios","Equipo","Blog / Noticias","Preguntas frecuentes","Contacto"]
+    pageOptions: WEBSITE_PAGES
   },
   ecommerce: {
     label: "E-commerce",
@@ -29,7 +31,7 @@ export const PROJECT_TYPES = {
     color: "#F2A33C",
     available: true,
     pageQuestion: "¿Qué páginas necesitas?",
-    pageOptions: ["Tienda","Cart","Checkout"],
+    pageOptions: [...WEBSITE_PAGES, "Tienda","Cart","Checkout"],
     extraQuestions: [
       { id: "pasarela_pago", type: "toggle", label: "¿Implementación de pasarela de pago?", options: ["Sí","No"] }
     ]
