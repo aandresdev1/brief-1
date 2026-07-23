@@ -1,0 +1,274 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = true;
+
+const LIST_PROJECTS_URL = 'https://primary-production-b62f1.up.railway.app/webhook/listar-proyectos-brief';
+const GENERATE_QUOTATION_URL = 'https://primary-production-b62f1.up.railway.app/webhook/generar-cotizacion';
+---
+
+<Layout
+  title="Cotizaciones — Crearperu"
+  step={0}
+  brandName="Cotizaciones pendientes"
+  appClass="narrow"
+>
+  <div id="content"></div>
+</Layout>
+
+<script define:vars={{ LIST_PROJECTS_URL, GENERATE_QUOTATION_URL }}>
+  const state = {
+    projects: [],
+    loading: true,
+    loadError: null,
+    // Per-project quotation state, keyed by project id: { status: 'idle'|'sending'|'done'|'error', message }
+    quotations: {},
+  };
+
+  const content = document.getElementById('content');
+
+  function render() {
+    if (state.loading) return renderLoading();
+    if (state.loadError) return renderError();
+    if (state.projects.length === 0) return renderEmpty();
+    return renderList();
+  }
+
+  function renderLoading() {
+    content.innerHTML = `
+      <div class="step">
+        <h1>Proyectos con brief recibido</h1>
+        <p class="subtitle">Cargando proyectos…</p>
+      </div>
+    `;
+  }
+
+  function renderError() {
+    content.innerHTML = `
+      <div class="step">
+        <h1>Proyectos con brief recibido</h1>
+        <div class="error-box">${state.loadError}</div>
+        <button class="reset-btn" id="retryBtn">Reintentar</button>
+      </div>
+    `;
+    document.getElementById('retryBtn').addEventListener('click', loadProjects);
+  }
+
+  function renderEmpty() {
+    content.innerHTML = `
+      <div class="step">
+        <h1>Proyectos con brief recibido</h1>
+        <p class="subtitle">Aún no hay proyectos con brief recibido para cotizar.</p>
+        <button class="reset-btn" id="retryBtn">Refrescar</button>
+      </div>
+    `;
+    document.getElementById('retryBtn').addEventListener('click', loadProjects);
+  }
+
+  function renderList() {
+    const items = state.projects.map(p => {
+      const q = state.quotations[p.id] || { status: 'idle' };
+      const btnDisabled = q.status === 'sending' || q.status === 'done';
+      let btnLabel = 'Generar cotización';
+      if (q.status === 'sending') btnLabel = '<span class="spinner"></span> Generando…';
+      if (q.status === 'done') btnLabel = '✓ Cotización generada';
+
+      const feedback = q.status === 'error'
+        ? `<div class="q-error">${q.message || 'Error al generar la cotización.'}</div>`
+        : '';
+
+      const clienteLine = p.cliente
+        ? (isUrl(p.cliente)
+            ? `<a class="q-cliente" href="${p.cliente}" target="_blank" rel="noopener">Ver cliente en Notion ↗</a>`
+            : `<span class="q-cliente">${p.cliente}</span>`)
+        : '';
+
+      const notionLine = p.url
+        ? `<a class="q-notion" href="${p.url}" target="_blank" rel="noopener">Abrir en Notion ↗</a>`
+        : '';
+
+      return `
+        <div class="q-card ${q.status === 'done' ? 'q-done' : ''}">
+          <div class="q-info">
+            <div class="q-name">${escapeHtml(p.nombre || 'Sin nombre')}</div>
+            <div class="q-meta">
+              ${clienteLine}
+              ${notionLine}
+            </div>
+            ${feedback}
+          </div>
+          <button
+            class="q-btn"
+            data-id="${p.id}"
+            data-url="${p.url || ''}"
+            ${btnDisabled ? 'disabled' : ''}
+          >${btnLabel}</button>
+        </div>
+      `;
+    }).join('');
+
+    content.innerHTML = `
+      <div class="step">
+        <h1>Proyectos con brief recibido</h1>
+        <p class="subtitle">${state.projects.length} proyecto${state.projects.length === 1 ? '' : 's'} esperando cotización.</p>
+        <div class="q-list">${items}</div>
+        <button class="reset-btn" id="refreshBtn">Refrescar lista</button>
+      </div>
+    `;
+
+    document.getElementById('refreshBtn').addEventListener('click', loadProjects);
+    content.querySelectorAll('.q-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const notionUrl = btn.dataset.url;
+        handleGenerate(id, notionUrl);
+      });
+    });
+  }
+
+  function isUrl(str) {
+    return typeof str === 'string' && /^https?:\/\//i.test(str);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function loadProjects() {
+    state.loading = true;
+    state.loadError = null;
+    render();
+    try {
+      const res = await fetch(LIST_PROJECTS_URL);
+      if (!res.ok) {
+        // El workflow devuelve 500 con "No item to return was found" cuando la lista está vacía.
+        // Tratamos eso como lista vacía en lugar de error.
+        let body = null;
+        try { body = await res.json(); } catch (_) {}
+        if (body && typeof body.message === 'string' && /no item to return/i.test(body.message)) {
+          state.projects = [];
+        } else {
+          throw new Error('El servidor respondió con error (' + res.status + ')');
+        }
+      } else {
+        const data = await res.json();
+        state.projects = Array.isArray(data) ? data : (data.proyectos || []);
+      }
+    } catch (err) {
+      state.loadError = 'No se pudo cargar la lista de proyectos. (' + err.message + ')';
+    }
+    state.loading = false;
+    render();
+  }
+
+  async function handleGenerate(projectId, notionUrl) {
+    if (!notionUrl) {
+      state.quotations[projectId] = { status: 'error', message: 'Este proyecto no tiene link de Notion.' };
+      render();
+      return;
+    }
+    state.quotations[projectId] = { status: 'sending' };
+    render();
+    try {
+      const res = await fetch(GENERATE_QUOTATION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notion_link: notionUrl }),
+      });
+      if (!res.ok) throw new Error('El servidor respondió con error (' + res.status + ')');
+      state.quotations[projectId] = { status: 'done' };
+    } catch (err) {
+      state.quotations[projectId] = { status: 'error', message: 'No se pudo generar la cotización. (' + err.message + ')' };
+    }
+    render();
+  }
+
+  render();
+  loadProjects();
+</script>
+
+<style>
+  .q-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .q-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 16px 16px 18px;
+    transition: border-color 0.15s ease;
+  }
+  .q-card:hover { border-color: rgba(242,163,60,0.35); }
+  .q-card.q-done { border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.04); }
+
+  .q-info { flex: 1; min-width: 0; }
+  .q-name {
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .q-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .q-cliente, .q-notion {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  a.q-cliente:hover, a.q-notion:hover { color: var(--accent); }
+  .q-error {
+    margin-top: 8px;
+    color: #FCA5A5;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .q-btn {
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .q-btn:hover:not(:disabled) { background: #FFB35C; }
+  .q-btn:active:not(:disabled) { transform: scale(0.98); }
+  .q-btn:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background: rgba(74,222,128,0.9);
+    color: #052e12;
+  }
+  .q-card:not(.q-done) .q-btn:disabled {
+    background: var(--accent);
+    color: var(--accent-text);
+    opacity: 0.65;
+  }
+
+  @media (max-width: 520px) {
+    .q-card { flex-direction: column; align-items: stretch; }
+    .q-btn { width: 100%; }
+  }
+</style>
