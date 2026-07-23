@@ -475,6 +475,31 @@ textarea.text-input::placeholder { color: #A6A59C; }
 /* --- admin: crear proyecto --- */
 .app.narrow { max-width: 560px; }
 
+.admin-nav {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 28px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  width: fit-content;
+}
+.admin-nav-link {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.admin-nav-link:hover { color: var(--text); }
+.admin-nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 input.text-input {
   width: 100%;
   padding: 11px 12px;
