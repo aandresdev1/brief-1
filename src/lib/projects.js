@@ -23,7 +23,17 @@ export const PROJECT_TYPES = {
     pageQuestion: "¿Qué páginas necesitas?",
     pageOptions: ["Inicio","Nosotros","Servicios","Equipo","Blog / Noticias","Preguntas frecuentes","Contacto"]
   },
-  ecommerce: { label: "E-commerce", hint: "Venta de productos en línea", color: "#F2A33C", available: false },
+  ecommerce: {
+    label: "E-commerce",
+    hint: "Venta de productos en línea",
+    color: "#F2A33C",
+    available: true,
+    pageQuestion: "¿Qué páginas necesitas?",
+    pageOptions: ["Tienda","Cart","Checkout"],
+    extraQuestions: [
+      { id: "pasarela_pago", type: "toggle", label: "¿Implementación de pasarela de pago?", options: ["Sí","No"] }
+    ]
+  },
   app: { label: "App Móvil", hint: "iOS, Android o ambos", color: "#F2A33C", available: false },
   webapp: { label: "Web App", hint: "Sistema o herramienta a medida", color: "#F2A33C", available: false }
 };

@@ -10,6 +10,7 @@ if (!projectType || !projectType.available) {
 }
 
 const t = projectType;
+const questions = [...COMMON_QUESTIONS, ...(t.extraQuestions ?? [])];
 ---
 
 <Layout step={2}>
@@ -29,7 +30,7 @@ const t = projectType;
     </div>
 
     <div id="commonQuestions">
-      {COMMON_QUESTIONS.map(q => (
+      {questions.map(q => (
         <div class="field" data-qid={q.id}>
           <div class="field-label">{q.label}</div>
           {q.type === 'toggle' && (
@@ -57,7 +58,7 @@ const t = projectType;
   </div>
 </Layout>
 
-<script define:vars={{ pageId: id, projectType: t, COMMON_QUESTIONS, N8N_WEBHOOK_URL }}>
+<script define:vars={{ pageId: id, projectType: t, COMMON_QUESTIONS: questions, N8N_WEBHOOK_URL }}>
   const state = { pages: [] };
   const grid = document.getElementById('pageOptionsGrid');
 
